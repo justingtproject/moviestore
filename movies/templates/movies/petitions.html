@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+
+<h1>Petitions</h1>
+
+<form method="post" class="mb-3">
+  {% csrf_token %}
+  <input type="hidden" name="create" value="1">
+  {{ form.as_p }}
+  <button type="submit" class="btn btn-primary">Create petition</button>
+</form>
+
+<ul class="list-group">
+  {% for p in petitions %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      <div>
+        <strong>{{ p.title }}</strong><br>
+        <small>by {{ p.created_by.username }} • {{ p.created_at }}</small><br>
+        {{ p.description|linebreaksbr }}
+      </div>
+      <div>
+        <span class="badge bg-secondary me-2">{{ p.vote_total|default:0 }} vote{{ p.vote_total|pluralize }}</span>
+        <form method="post" action="{% url 'movie_petition_vote' p.pk %}" style="display:inline">
+          {% csrf_token %}
+          <button class="btn btn-outline-success btn-sm">Vote</button>
+        </form>
+        {% if user.is_staff or user.id == p.created_by_id %}
+        <form method="post" style="display:inline">
+          {% csrf_token %}
+          <button name="delete" value="{{ p.id }}" class="btn btn-outline-danger btn-sm">Delete</button>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+  {% empty %}
+    <li class="list-group-item">No petitions yet.</li>
+  {% endfor %}
+
+{% endblock content %}

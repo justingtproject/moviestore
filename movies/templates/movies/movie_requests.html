@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Request a Movie</h1>
+
+<form method="post" class="mb-4">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+<h2>My Requests</h2>
+<ul class="list-group">
+  {% for r in requests %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      <div>
+        <strong>{{ r.title }}</strong><br>
+        {{ r.description }}
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="delete" value="{{ r.id }}">
+        <button class="btn btn-danger">Delete</button>
+      </form>
+    </li>
+  {% empty %}
+    <li class="list-group-item">No requests yet.</li>
+  {% endfor %}
+</ul>
+
+{% endblock %}
