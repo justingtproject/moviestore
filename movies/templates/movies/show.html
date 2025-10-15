@@ -6,6 +6,69 @@
     <div class="row mt-3">
       <div class="col-md-6 mx-auto mb-3">
         <h2>{{ template_data.movie.name }}</h2>
+        <div class="mb-2">
+          <span style="font-size:1.2rem;">
+            {% with avg=template_data.avg_rating|default:0 %}
+              {% for i in "12345" %}
+                {% if avg >= forloop.counter %}★{% else %}☆{% endif %}
+              {% endfor %}
+            {% endwith %}
+          </span>
+          <small>
+            {% if template_data.rating_count %}
+              {{ template_data.avg_rating|floatformat:1 }}/5 ({{ template_data.rating_count }} ratings)
+            {% else %}
+              No ratings yet
+            {% endif %}
+          </small>
+        </div>
+        {% if user.is_authenticated %}
+        <form method="POST" action="{% url 'movies.rate' id=template_data.movie.id %}" class="mb-3">
+          {% csrf_token %}
+          <label class="form-label d-block mb-1">Rate this movie:</label>
+
+          <style>
+            .star-rating {
+              display: inline-flex;
+              flex-direction: row-reverse;   /* 5 .. 1 visually left→right */
+              gap: .1rem;
+            }
+            .star-rating input { display: none; }
+            .star-rating label {
+              cursor: pointer;
+              font-size: 1.8rem;
+              line-height: 1;
+              color: #ccc;               /* default “white” (use #ccc if your page is white) */
+              user-select: none;
+            }
+            /* Hover preview */
+            .star-rating label:hover,
+            .star-rating label:hover ~ label {
+              color: #000000;               /* black on hover */
+            }
+            /* Persist selection */
+            .star-rating input:checked ~ label {
+              color: #000000;               /* black when selected */
+            }
+          </style>
+
+          <div class="star-rating">
+            {# Render 5→1 so the ~ selector fills “to the left” visually #}
+            {% for i in "54321" %}
+              <input
+                type="radio"
+                id="rate{{ i }}"
+                name="rating"
+                value="{{ i }}"
+                onchange="this.form.submit()"
+                {% if template_data.user_rating and template_data.user_rating|stringformat:"s" == i %}checked{% endif %}
+              >
+              <label for="rate{{ i }}" title="{{ i }} star{{ i|yesno:',s' }}">★</label>
+            {% endfor %}
+          </div>
+        </form>
+        {% endif %}
+
         <hr />
         <p><b>Description:</b> {{ template_data.movie.description }}</p>
         <p><b>Price:</b> ${{ template_data.movie.price }}</p>

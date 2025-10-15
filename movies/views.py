@@ -1,13 +1,13 @@
 from pyexpat.errors import messages
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, MoviePetition, MoviePetitionVote, Review
+from .models import Movie, MoviePetition, MoviePetitionVote, Review, MovieRating
 from django.contrib.auth.decorators import login_required
 from .forms import MovieRequestForm, MoviePetitionForm
 from .models import MovieRequest
 from django.contrib import messages
-from django.db import IntegrityError, models
-from django.contrib.auth.models import User
+from django.db import IntegrityError
 from django.db.models import Count
+from django.db.models import Avg, Count
 
 
 @login_required
@@ -136,3 +136,50 @@ def movie_petition_vote(request, petition_id):
     except IntegrityError:
         messages.info(request, "You already voted for this petition.")
     return redirect("movie_petitions")
+
+
+def show(request, id):
+    movie = get_object_or_404(Movie, pk=id)
+    reviews = Review.objects.filter(movie=movie).select_related("user").order_by("-date")
+
+    from .models import MovieRating
+    from django.db.models import Avg, Count
+
+    stats = MovieRating.objects.filter(movie=movie).aggregate(avg=Avg("value"), n=Count("id"))
+    user_value = None
+    if request.user.is_authenticated:
+        user_value = MovieRating.objects.filter(movie=movie, user=request.user)\
+                                        .values_list("value", flat=True).first()
+
+    template_data = {
+        "movie": movie,
+        "reviews": reviews,
+        "avg_rating": stats["avg"],
+        "rating_count": stats["n"],
+        "user_rating": user_value,
+    }
+    return render(request, "movies/show.html", {"template_data": template_data})
+
+@login_required
+def rate_movie(request, id):
+    movie = get_object_or_404(Movie, pk=id)
+    if request.method == "POST":
+        try:
+            value = int(request.POST.get("rating", ""))
+        except ValueError:
+            value = 0
+        if value < 1 or value > 5:
+            messages.error(request, "Choose a rating from 1 to 5.")
+        else:
+            MovieRating.objects.update_or_create(
+                movie=movie, user=request.user, defaults={"value": value}
+            )
+            messages.success(request, "Thanks for rating!")
+    return redirect("movies.show", id=movie.id)
+
+@login_required
+def clear_rating(request, id):
+    movie = get_object_or_404(Movie, pk=id)
+    MovieRating.objects.filter(movie=movie, user=request.user).delete()
+    messages.success(request, "Your rating was removed.")
+    return redirect("movies.show", id=movie.id)

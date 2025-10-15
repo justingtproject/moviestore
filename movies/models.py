@@ -55,3 +55,15 @@ class MoviePetitionVote(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["petition", "user"], name="unique_vote_per_user_per_petition")
         ]
+
+class MovieRating(models.Model):
+    movie   = models.ForeignKey(Movie, related_name="ratings", on_delete=models.CASCADE)
+    user    = models.ForeignKey(User, on_delete=models.CASCADE)
+    value   = models.PositiveSmallIntegerField(choices=[(i, str(i)) for i in range(1, 6)])
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["movie", "user"], name="uniq_user_movie_rating")
+        ]
