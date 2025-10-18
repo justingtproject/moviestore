@@ -6,8 +6,10 @@ from .forms import MovieRequestForm, MoviePetitionForm
 from .models import MovieRequest
 from django.contrib import messages
 from django.db import IntegrityError
-from django.db.models import Count
-from django.db.models import Avg, Count
+from django.db.models import Count, Avg
+from accounts.models import Region, UserProfile
+from cart.models import Item
+from django.http import JsonResponse
 
 
 @login_required
@@ -183,3 +185,27 @@ def clear_rating(request, id):
     MovieRating.objects.filter(movie=movie, user=request.user).delete()
     messages.success(request, "Your rating was removed.")
     return redirect("movies.show", id=movie.id)
+
+
+def popularity_map_data(request):
+    # Aggregate movie purchases by region
+    data = []
+    for region in Region.objects.all():
+        items = Item.objects.filter(order__user__userprofile__region=region)
+        movie_counts = (
+            items.values('movie__id', 'movie__name')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:5]
+        )
+        data.append({
+            'region': region.name,
+            'code': region.code,
+            'lat': region.latitude,
+            'lng': region.longitude,
+            'top_movies': list(movie_counts),
+        })
+    return JsonResponse({'regions': data})
+
+
+def popularity_map(request):
+    return render(request, 'movies/popularity_map.html')

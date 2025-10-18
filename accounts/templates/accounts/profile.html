@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>User Profile</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Save Region</button>
+  </form>
+  <hr>
+  <h4>Or detect your region automatically:</h4>
+  <form method="post" id="geo-form">
+    {% csrf_token %}
+    {{ detect_form.as_p }}
+    <button type="button" class="btn btn-secondary" onclick="detectRegion()">Detect Region by Location</button>
+  </form>
+  <div id="geo-status" class="mt-2"></div>
+</div>
+<script>
+function detectRegion() {
+  if (navigator.geolocation) {
+    document.getElementById('geo-status').innerText = 'Detecting location...';
+    navigator.geolocation.getCurrentPosition(function(position) {
+      document.getElementById('id_latitude').value = position.coords.latitude;
+      document.getElementById('id_longitude').value = position.coords.longitude;
+      document.getElementById('geo-form').submit();
+    }, function() {
+      document.getElementById('geo-status').innerText = 'Location access denied.';
+    });
+  } else {
+    document.getElementById('geo-status').innerText = 'Geolocation is not supported.';
+  }
+}
+</script>
+{% endblock %}

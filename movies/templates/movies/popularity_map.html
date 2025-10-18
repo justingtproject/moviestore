@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Local Popularity Map</h2>
+  <div id="map" style="height: 500px;"></div>
+  <div id="region-info" class="mt-4"></div>
+</div>
+{% load static %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Default map center
+  var defaultLat = 20;
+  var defaultLng = 0;
+  var defaultZoom = 2;
+  var userLat = null;
+  var userLng = null;
+  var userZoom = 6; // Closer zoom for state/province
+
+  // Try to get user's region from the backend (if logged in)
+  fetch('/accounts/profile/json/')
+    .then(response => response.json())
+    .then(profile => {
+      if (profile.region && profile.region.latitude && profile.region.longitude) {
+        userLat = profile.region.latitude;
+        userLng = profile.region.longitude;
+      }
+    })
+    .finally(function() {
+      // If user region found, center there, else use default
+      var map = L.map('map').setView([
+        userLat !== null ? userLat : defaultLat,
+        userLng !== null ? userLng : defaultLng
+      ], userLat !== null ? userZoom : defaultZoom);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+      fetch('{% url "popularity_map_data" %}')
+        .then(response => response.json())
+        .then(data => {
+          data.regions.forEach(region => {
+            var marker = L.marker([region.lat, region.lng]).addTo(map);
+            var popupContent = `<b>${region.region}</b><br>Trending Movies:<ul>`;
+            region.top_movies.forEach(m => {
+              popupContent += `<li>${m.movie__name} (${m.count})</li>`;
+            });
+            popupContent += '</ul>';
+            marker.bindPopup(popupContent);
+            marker.on('click', function() {
+              document.getElementById('region-info').innerHTML = popupContent;
+            });
+          });
+        });
+    });
+});
+</script>
+{% endblock %}

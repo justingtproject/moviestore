@@ -5,4 +5,6 @@ urlpatterns = [
     path('login/', views.login, name='accounts.login'),
     path('logout/', views.logout, name='accounts.logout'),
     path('orders/', views.orders, name='accounts.orders'),
+    path('profile/', views.profile, name='profile'),
+    path('profile/json/', views.profile_json, name='profile_json'),
 ]
